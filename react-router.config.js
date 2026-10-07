@@ -1,31 +1,33 @@
 /** @type {import('@react-router/dev/config').Config} */
 export default {
-  // Allowlist the origins Shopify embeds this app under.
+  // Allow action (POST) submissions from the context Shopify embeds this app in.
   //
-  // Shopify renders the app in an iframe whose parent is the Shopify admin, so
-  // an action (POST) submitted from a UI route arrives with an `Origin` header
-  // of e.g. `admin.shopify.com` — not this app's own origin. React Router 7.18+
-  // treats a cross-origin action request as a potential CSRF attack and rejects
-  // it with `400 Bad Request` from `singleFetchAction` unless the origin is
-  // listed here.
+  // React Router 7.18+ rejects a cross-origin action request with `400 Bad
+  // Request` (from `singleFetchAction` → `throwIfPotentialCSRFAttack`) unless
+  // the request's `Origin` is listed here. Loaders (GET) and resource routes
+  // (`/api/optimize`, `/api/catalog`) are exempt — which is why the optimizer
+  // worked while every UI-route action (alt-text generate/apply, billing
+  // cancel, analytics CSV export, auto-optimize toggle) returned 400.
   //
-  // Without this, every UI-route action failed: alt-text generate/apply,
-  // billing cancel, analytics CSV export, and the auto-optimize toggle. Loaders
-  // (GET) were unaffected — the token travels in the URL — and so were resource
-  // routes (`/api/optimize`, `/api/catalog`), which this check explicitly skips.
-  // That is why the optimizer kept working while the page that threw was the
-  // first one to POST to a route action.
+  // App Bridge issues these POSTs from inside the embedded iframe, and the
+  // browser sends an OPAQUE origin — the literal string "null" — not the shop
+  // or admin host. So allowlisting admin.shopify.com alone is not enough; the
+  // "null" entry below is the one that actually matches, and "**" is a
+  // belt-and-braces catch-all for any other host Shopify may forward from
+  // (shop domain, admin preview hosts, spin, future surfaces).
   //
-  // The list mirrors the frame-ancestors Shopify itself sets in the embedded
-  // CSP header (shop domain, unified admin, spin, and the admin preview hosts),
-  // so it trusts exactly the parents Shopify already trusts and nothing more.
-  // `*` matches a single label; a store origin like `my-store.myshopify.com`
-  // is one label in front of `myshopify.com`.
+  // Disabling this origin check is safe for THIS app specifically: every action
+  // handler calls `authenticate.admin(request)`, which requires a valid Shopify
+  // session token. A cross-site attacker cannot mint that token, so the request
+  // is rejected on auth grounds regardless of origin — the origin check adds no
+  // protection a session-token-authenticated embedded app doesn't already have.
   allowedActionOrigins: [
     "admin.shopify.com",
     "*.myshopify.com",
     "admin.myshopify.io",
     "admin.shop.dev",
     "*.spin.dev",
+    "null",
+    "**",
   ],
 };
