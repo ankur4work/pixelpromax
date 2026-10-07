@@ -183,6 +183,47 @@ export const BATCH_SIZE = num(process.env.BATCH_SIZE, 10, 1, 25);
 export const BATCH_CONCURRENCY = num(process.env.BATCH_CONCURRENCY, 6, 1, 12);
 
 /* -------------------------------------------------------------------------- */
+/*  Per-product media mutation lock                                           */
+/* -------------------------------------------------------------------------- */
+
+// Shopify locks a product's media while a mutation on it is in flight, and
+// rejects a second concurrent one with "Media cannot be modified at this moment
+// because it is currently being modified by another operation". Both the
+// per-image API (optimizeOneImage, up to IMAGE_CONCURRENCY at once) and the
+// batch path (optimizeBatch, up to BATCH_CONCURRENCY at once) run several images
+// of the SAME product in parallel, so their productCreateMedia /
+// productDeleteMedia calls collided — images failed mid-run and only succeeded
+// on a re-click.
+//
+// The expensive work (download + WebP encode) must stay parallel; only the
+// media MUTATION needs to be serialized, and only against other mutations on the
+// same product. This is a per-productId promise chain: a mutation waits for the
+// previous one on that product to finish, then runs. A single long-running Node
+// instance (the Coolify deployment) shares one module scope, so this in-process
+// lock covers every concurrent request. It is advisory only — a second instance
+// would not see it — but the batch/per-image concurrency that causes the clash
+// originates here, in one process, so that is exactly where the lock belongs.
+const productMediaChains = new Map(); // productId -> Promise (tail of the chain)
+
+function withProductMediaLock(productId, task) {
+  const prev = productMediaChains.get(productId) || Promise.resolve();
+  // Run `task` after the previous holder settles, whether it resolved or threw —
+  // one image's failure must not wedge the rest of the product's queue.
+  const run = prev.then(task, task);
+  // The stored tail swallows errors so the chain never rejects; callers still
+  // see the real result/rejection through `run`.
+  const tail = run.then(() => {}, () => {});
+  productMediaChains.set(productId, tail);
+  // Drop the map entry once this product's queue drains, so the Map can't grow
+  // without bound across a large catalog — but only if no newer mutation has
+  // already replaced the tail.
+  tail.finally(() => {
+    if (productMediaChains.get(productId) === tail) productMediaChains.delete(productId);
+  });
+  return run;
+}
+
+/* -------------------------------------------------------------------------- */
 /*  Optimization primitives                                                   */
 /* -------------------------------------------------------------------------- */
 
@@ -331,40 +372,46 @@ export async function uploadAndReplaceImage(admin, productId, originalMediaId, o
   const uploadRes = await timedFetch(target.url, { method: "POST", body: form }, 40000);
   if (!uploadRes.ok) throw new Error(`Staged upload HTTP ${uploadRes.status}`);
 
-  const mediaRes = await admin.graphql(
-    `#graphql
-      mutation productCreateMedia($productId: ID!, $media: [CreateMediaInput!]!) {
-        productCreateMedia(productId: $productId, media: $media) {
-          media { ... on MediaImage { id } }
-          mediaUserErrors { field message }
-        }
-      }`,
-    {
-      variables: {
-        productId,
-        media: [{ alt: altText, mediaContentType: "IMAGE", originalSource: target.resourceUrl }],
-      },
+  // Everything above (staged upload) targets a storage bucket, not the product,
+  // so it runs in parallel across a product's images. The two mutations below DO
+  // touch the product's media and Shopify serializes them itself — so we queue
+  // them per product rather than letting Shopify reject the concurrent ones.
+  return withProductMediaLock(productId, async () => {
+    const mediaRes = await admin.graphql(
+      `#graphql
+        mutation productCreateMedia($productId: ID!, $media: [CreateMediaInput!]!) {
+          productCreateMedia(productId: $productId, media: $media) {
+            media { ... on MediaImage { id } }
+            mediaUserErrors { field message }
+          }
+        }`,
+      {
+        variables: {
+          productId,
+          media: [{ alt: altText, mediaContentType: "IMAGE", originalSource: target.resourceUrl }],
+        },
+      }
+    );
+    const mediaData = await mediaRes.json();
+    if (mediaData.data?.productCreateMedia?.mediaUserErrors?.length > 0) {
+      throw new Error(mediaData.data.productCreateMedia.mediaUserErrors[0].message);
     }
-  );
-  const mediaData = await mediaRes.json();
-  if (mediaData.data?.productCreateMedia?.mediaUserErrors?.length > 0) {
-    throw new Error(mediaData.data.productCreateMedia.mediaUserErrors[0].message);
-  }
-  const newMedia = mediaData.data?.productCreateMedia?.media?.[0];
-  if (!newMedia) throw new Error("Failed to attach media to product");
+    const newMedia = mediaData.data?.productCreateMedia?.media?.[0];
+    if (!newMedia) throw new Error("Failed to attach media to product");
 
-  await admin.graphql(
-    `#graphql
-      mutation productDeleteMedia($productId: ID!, $mediaIds: [ID!]!) {
-        productDeleteMedia(productId: $productId, mediaIds: $mediaIds) {
-          deletedMediaIds
-          mediaUserErrors { field message }
-        }
-      }`,
-    { variables: { productId, mediaIds: [originalMediaId] } }
-  );
+    await admin.graphql(
+      `#graphql
+        mutation productDeleteMedia($productId: ID!, $mediaIds: [ID!]!) {
+          productDeleteMedia(productId: $productId, mediaIds: $mediaIds) {
+            deletedMediaIds
+            mediaUserErrors { field message }
+          }
+        }`,
+      { variables: { productId, mediaIds: [originalMediaId] } }
+    );
 
-  return newMedia.id;
+    return newMedia.id;
+  });
 }
 
 // Alt text is generated with OpenAI only (gpt-4o-mini vision). There is
