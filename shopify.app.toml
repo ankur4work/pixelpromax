@@ -1,0 +1,57 @@
+# PixelPro Max — Shopify app configuration.
+#
+# client_id and the URLs below are the real PixelPro Max values. If you ever run
+# `npm run config:link` (which rewrites this file from the app you pick in the
+# Dev Dashboard), re-apply the [webhooks] block below afterwards — the CLI does
+# not generate the compliance subscription, and without it the mandatory privacy
+# webhooks are unregistered.
+name = "PixelPro Max"
+client_id = "6efa90753609d52112a27ec6940f0f69"
+application_url = "https://pixelpromax.onkra.online"
+embedded = true
+
+
+[access_scopes]
+scopes = "write_products,write_files"
+
+[access.admin]
+direct_api_mode = "online"
+
+[auth]
+redirect_urls = [
+  "https://pixelpromax.onkra.online/auth/callback",
+  "https://pixelpromax.onkra.online/auth/shopify/callback",
+  "https://pixelpromax.onkra.online/api/auth/callback"
+]
+
+# Matches ApiVersion.October25 in app/shopify.server.js. These two MUST stay in
+# sync: the toml decides the shape of the webhook payloads Shopify sends, and the
+# code decides the shape it expects.
+[webhooks]
+api_version = "2025-10"
+
+[[webhooks.subscriptions]]
+topics = [ "app/uninstalled" ]
+uri = "https://pixelpromax.onkra.online/webhooks/app/uninstalled"
+
+[[webhooks.subscriptions]]
+topics = [ "app/scopes_update" ]
+uri = "https://pixelpromax.onkra.online/webhooks/app/scopes_update"
+
+[[webhooks.subscriptions]]
+topics = [ "products/create" ]
+uri = "https://pixelpromax.onkra.online/webhooks/products/create"
+
+# Mandatory privacy webhooks. They have their own endpoint that handles each
+# topic explicitly — see app/routes/webhooks.compliance.jsx. Declaring them as
+# compliance_topics on the app/uninstalled subscription instead answers 200 but
+# does no actual redaction work, which is an App Store compliance failure.
+[[webhooks.subscriptions]]
+compliance_topics = [ "customers/redact", "customers/data_request", "shop/redact" ]
+uri = "https://pixelpromax.onkra.online/webhooks/compliance"
+
+[pos]
+embedded = false
+
+[build]
+automatically_update_urls_on_dev = false

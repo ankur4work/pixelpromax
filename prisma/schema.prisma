@@ -1,0 +1,60 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Session {
+  id            String    @id
+  shop          String
+  state         String
+  isOnline      Boolean   @default(false)
+  scope         String?
+  expires       DateTime?
+  accessToken   String
+  userId        BigInt?
+  firstName     String?
+  lastName      String?
+  email         String?
+  accountOwner  Boolean   @default(false)
+  locale        String?
+  collaborator         Boolean?  @default(false)
+  emailVerified        Boolean?  @default(false)
+  refreshToken         String?
+  refreshTokenExpires  DateTime?
+}
+
+// Per-shop, per-month image optimization counter used to enforce plan quotas.
+// `period` is "YYYY-MM"; a new row is created each month so usage resets.
+model UsageCounter {
+  id         String @id @default(cuid())
+  shop       String
+  period     String // "2026-10"
+  imagesUsed Int    @default(0)
+
+  @@unique([shop, period])
+}
+
+// Per-shop app settings. `autoOptimize` toggles background optimization of newly
+// created products (a Growth+ feature, also gated by entitlement at runtime).
+model ShopSettings {
+  shop         String  @id
+  autoOptimize Boolean @default(false)
+}
+
+// Measured byte size of a Shopify CDN image, keyed by its URL.
+//
+// The product list has to show a real "Original Size" per product, which meant a
+// HEAD request per image on every single page load — thousands of round trips
+// for a mid-size catalog. Shopify CDN urls carry a ?v=<version> that changes
+// whenever the file changes, so the url is a safe content key: a cached entry
+// can never describe different bytes than the ones it was measured from, and
+// stale rows are simply never read again.
+model ImageSize {
+  url       String   @id
+  bytes     Int
+  createdAt DateTime @default(now())
+}

@@ -1,0 +1,1022 @@
+/* PixelPro Max — flat emerald-on-slate design system.
+ *
+ * Every colour, radius and border the app paints is declared in the :root block
+ * below and nowhere else. Keeping the palette half in variables and half in
+ * literals scattered through the rules (or inline in components) means a
+ * rebrand turns into hunting hex codes across files and always missing a few.
+ * Re-theming is editing only this block.
+ *
+ * The visual language is deliberately FLAT: no gradients, no drop shadows, no
+ * elevation. Depth is expressed with 1px hairline borders and a single surface
+ * wash, and hierarchy with type scale, uppercase micro-labels and tabular
+ * numbers. If you find yourself adding a `linear-gradient` or a `box-shadow`
+ * here, it belongs in a different design, not this one.
+ *
+ * The px-* primitives are consumed by the routes AND by PricingTiers.jsx /
+ * privacy.jsx, so the public pages and the embedded app cannot drift apart.
+ */
+
+:root {
+  /* ── Brand ─────────────────────────────────── */
+  --px-accent: #0D9488;          /* teal-600    — primary action, active state */
+  --px-accent-hover: #0F766E;    /* teal-700                                   */
+  --px-accent-active: #115E59;   /* teal-800                                   */
+  --px-deep: #065F46;            /* emerald-800 — accent text on tint          */
+  --px-accent-tint: #F0FDFA;     /* teal-50     — active segment / row select  */
+  --px-accent-tint-2: #CCFBF1;   /* teal-100    — meter track fill, tag bg     */
+  --px-accent-border: #99F6E4;   /* teal-200                                   */
+
+  /* ── Ink & neutrals ───────────────────────── */
+  --px-ink: #0F172A;             /* slate-900 — headings, figures */
+  --px-body: #334155;            /* slate-700 — body copy         */
+  --px-muted: #64748B;           /* slate-500 — labels, meta      */
+  --px-faint: #94A3B8;           /* slate-400 — placeholders      */
+
+  /* ── Surfaces ─────────────────────────────── */
+  --px-surface: #FFFFFF;
+  --px-wash: #F8FAFC;            /* slate-50 — page + header wash  */
+  --px-wash-2: #F1F5F9;          /* slate-100 — table head, tracks */
+  --px-hover: #F8FAFC;
+
+  /* ── Borders ──────────────────────────────── */
+  --px-border: #E2E8F0;          /* slate-200 — the hairline       */
+  --px-border-strong: #CBD5E1;   /* slate-300 — emphasis, dividers */
+
+  /* ── Geometry ─────────────────────────────── */
+  --px-r: 6px;                   /* the radius. One value, everywhere. */
+  --px-r-sm: 4px;                /* tags, dots, small chips            */
+  --px-hair: 1px solid var(--px-border);
+
+  /* ── Status ───────────────────────────────── */
+  --px-ok: #047857;              /* emerald-700 */
+  --px-ok-bg: #ECFDF5;
+  --px-ok-border: #A7F3D0;
+  --px-warn: #B45309;            /* amber-700 */
+  --px-warn-bg: #FFFBEB;
+  --px-warn-border: #FDE68A;
+  --px-bad: #B91C1C;             /* red-700 */
+  --px-bad-bg: #FEF2F2;
+  --px-bad-border: #FECACA;
+  --px-info: #1D4ED8;            /* blue-700 */
+  --px-info-bg: #EFF6FF;
+  --px-info-border: #BFDBFE;
+
+  /* ── Disabled state ───────────────────────── */
+  --px-disabled-bg: #E2E8F0;
+  --px-disabled-fg: #94A3B8;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   Polaris overrides — flatten the platform components to match
+   ══════════════════════════════════════════════════════════════════════ */
+
+.Polaris-Button--variantPrimary {
+  background: var(--px-accent) !important;
+  border-color: var(--px-accent) !important;
+  box-shadow: none !important;
+  border-radius: var(--px-r) !important;
+}
+.Polaris-Button--variantPrimary:hover:not(:disabled) {
+  background: var(--px-accent-hover) !important;
+  border-color: var(--px-accent-hover) !important;
+}
+.Polaris-Button--variantPrimary:active:not(:disabled) {
+  background: var(--px-accent-active) !important;
+}
+/* A disabled button must LOOK disabled. The rule above sets the accent fill on
+   every primary button, which would otherwise override Polaris's own disabled
+   styling — leaving a button that cannot be clicked looking exactly like one
+   that can, so clicking it appears to do nothing. */
+.Polaris-Button--variantPrimary:disabled,
+.Polaris-Button--variantPrimary[aria-disabled="true"] {
+  background: var(--px-disabled-bg) !important;
+  border-color: var(--px-disabled-bg) !important;
+  color: var(--px-disabled-fg) !important;
+  box-shadow: none !important;
+  cursor: not-allowed;
+}
+.Polaris-Button--variantPrimary:disabled .Polaris-Text--root,
+.Polaris-Button--variantPrimary[aria-disabled="true"] .Polaris-Text--root {
+  color: inherit !important;
+}
+
+.Polaris-Link { color: var(--px-accent) !important; }
+.Polaris-Link:hover { color: var(--px-accent-hover) !important; }
+
+.Polaris-TextField__Input:focus {
+  border-color: var(--px-accent) !important;
+  box-shadow: 0 0 0 2px var(--px-accent-border) !important;
+}
+
+.Polaris-Checkbox__Input:checked + .Polaris-Checkbox__Backdrop {
+  background: var(--px-accent) !important;
+  border-color: var(--px-accent) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   Command bar — replaces the gradient hero banner
+   ══════════════════════════════════════════════════════════════════════ */
+
+.px-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  background: var(--px-wash);
+  border: var(--px-hair);
+  border-radius: var(--px-r);
+  border-left: 2px solid var(--px-accent);
+  padding: 14px 18px;
+  margin-bottom: 16px;
+}
+.px-bar-main { min-width: 0; }
+.px-bar-eyebrow {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--px-accent);
+  margin: 0 0 5px 0;
+}
+.px-bar-title {
+  font-size: 19px;
+  line-height: 1.2;
+  font-weight: 650;
+  letter-spacing: -0.015em;
+  color: var(--px-ink);
+  margin: 0;
+}
+.px-bar-sub {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--px-muted);
+  margin: 4px 0 0 0;
+  max-width: 68ch;
+}
+.px-bar-aside { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+
+/* ══════════════════════════════════════════════════════════════════════
+   KPI strip — one horizontal rail of figures, hairline-separated.
+   Replaces the four equal stat cards and the heading2xl stat blocks.
+   ══════════════════════════════════════════════════════════════════════ */
+
+.px-kpi {
+  display: flex;
+  flex-wrap: wrap;
+  background: var(--px-surface);
+  border: var(--px-hair);
+  border-radius: var(--px-r);
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+.px-kpi-cell {
+  flex: 1 1 0;
+  min-width: 140px;
+  padding: 12px 16px;
+  border-left: var(--px-hair);
+}
+.px-kpi-cell:first-child { border-left: 0; }
+.px-kpi-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--px-muted);
+  margin: 0 0 4px 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.px-kpi-value {
+  font-size: 21px;
+  line-height: 1.15;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--px-ink);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.px-kpi-value--ok { color: var(--px-ok); }
+.px-kpi-value--bad { color: var(--px-bad); }
+.px-kpi-note {
+  font-size: 11px;
+  color: var(--px-muted);
+  margin: 3px 0 0 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* A word-valued KPI ("Growth", "On") would read as a broken headline at the
+   figure size, so it gets the tag treatment and keeps the row on one baseline. */
+.px-kpi-tagline { min-height: 24px; display: flex; align-items: center; }
+
+@media (max-width: 760px) {
+  .px-kpi-cell { flex-basis: 50%; border-top: var(--px-hair); }
+  .px-kpi-cell:nth-child(-n+2) { border-top: 0; }
+  .px-kpi-cell:nth-child(odd) { border-left: 0; }
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   Segmented control — replaces the <Select> filter dropdowns
+   ══════════════════════════════════════════════════════════════════════ */
+
+.px-seg {
+  display: inline-flex;
+  border: var(--px-hair);
+  border-radius: var(--px-r);
+  overflow: hidden;
+  background: var(--px-surface);
+}
+.px-seg-btn {
+  appearance: none;
+  border: 0;
+  border-left: var(--px-hair);
+  background: var(--px-surface);
+  color: var(--px-body);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 550;
+  line-height: 1;
+  padding: 8px 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.px-seg-btn:first-child { border-left: 0; }
+.px-seg-btn:hover:not(:disabled):not([aria-pressed="true"]) { background: var(--px-wash-2); }
+.px-seg-btn[aria-pressed="true"] {
+  background: var(--px-accent-tint);
+  color: var(--px-deep);
+  font-weight: 650;
+  box-shadow: inset 0 -2px 0 var(--px-accent);
+}
+.px-seg-btn:disabled { color: var(--px-disabled-fg); cursor: not-allowed; }
+.px-seg-count {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.7;
+  margin-left: 5px;
+}
+
+/* A labelled control group: micro-label above the control, not beside it. */
+.px-field { display: inline-flex; flex-direction: column; gap: 6px; }
+.px-field-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--px-muted);
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   Panel — flat bordered container, replaces Polaris <Card> where the
+   card's own padding/elevation would fight the dense table inside it.
+   ══════════════════════════════════════════════════════════════════════ */
+
+.px-panel {
+  background: var(--px-surface);
+  border: var(--px-hair);
+  border-radius: var(--px-r);
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+.px-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 11px 16px;
+  background: var(--px-wash);
+  border-bottom: var(--px-hair);
+}
+.px-panel-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--px-body);
+  margin: 0;
+}
+.px-panel-note { font-size: 12px; color: var(--px-muted); margin: 0; }
+.px-panel-body { padding: 16px; }
+.px-panel-foot {
+  padding: 10px 16px;
+  background: var(--px-wash);
+  border-top: var(--px-hair);
+  font-size: 12px;
+  color: var(--px-muted);
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   Dense table — the core of the redesign. Products, alt-text rows, pages
+   and format breakdowns are all rows in a grid, not stacked cards.
+   ══════════════════════════════════════════════════════════════════════ */
+
+.px-table { --px-cols: 1fr; }
+.px-tr {
+  display: grid;
+  grid-template-columns: var(--px-cols);
+  align-items: center;
+  gap: 12px;
+  padding: 9px 16px;
+  border-bottom: var(--px-hair);
+  min-width: 0;
+}
+.px-tr:last-child { border-bottom: 0; }
+.px-thead {
+  background: var(--px-wash-2);
+  border-bottom: var(--px-hair);
+  padding-top: 7px;
+  padding-bottom: 7px;
+}
+.px-th {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--px-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.px-tbody-row { background: var(--px-surface); transition: background 0.12s ease; }
+.px-tbody-row:hover { background: var(--px-hover); }
+.px-tbody-row--selected { background: var(--px-accent-tint); }
+.px-tbody-row--active { box-shadow: inset 2px 0 0 var(--px-accent); }
+
+.px-td { min-width: 0; font-size: 13px; color: var(--px-body); }
+.px-td--num { font-variant-numeric: tabular-nums; text-align: right; }
+.px-td--right { display: flex; justify-content: flex-end; }
+.px-td-strong {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--px-ink);
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.px-td-meta {
+  font-size: 11px;
+  color: var(--px-muted);
+  margin: 2px 0 0 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.px-td-ok { color: var(--px-ok); font-weight: 600; }
+
+/* Column templates. Declared here rather than inline so the header row and the
+   body rows can never disagree about how many columns there are. */
+.px-table--products {
+  --px-cols: 26px 36px minmax(0, 1fr) 62px 86px 104px 132px 120px;
+}
+.px-table--alt {
+  --px-cols: 26px 44px minmax(0, 1.1fr) minmax(0, 1.4fr) 64px 104px;
+}
+.px-table--pages {
+  --px-cols: minmax(0, 1fr) 60px 84px 84px 90px 92px;
+}
+.px-table--formats {
+  --px-cols: 72px 72px minmax(120px, 1fr) 92px 60px;
+}
+.px-table--vitals {
+  --px-cols: minmax(0, 1fr) 110px 150px;
+}
+
+/* Narrow viewports: drop the columns that are nice-to-have before the ones that
+   are load-bearing. `display:none` on a grid child removes it from the flow, so
+   the template is shortened to match in each step. */
+@media (max-width: 1040px) {
+  .px-table--products { --px-cols: 26px 36px minmax(0, 1fr) 86px 132px 120px; }
+  .px-table--products .px-col-images,
+  .px-table--products .px-col-saved { display: none; }
+  .px-table--pages { --px-cols: minmax(0, 1fr) 60px 90px 92px; }
+  .px-table--pages .px-col-before,
+  .px-table--pages .px-col-after { display: none; }
+}
+@media (max-width: 780px) {
+  .px-table--products { --px-cols: 26px minmax(0, 1fr) 132px; }
+  .px-table--products .px-col-thumb,
+  .px-table--products .px-col-size,
+  .px-table--products .px-col-action { display: none; }
+  .px-table--alt { --px-cols: 26px minmax(0, 1fr) minmax(0, 1.2fr) 104px; }
+  .px-table--alt .px-col-thumb,
+  .px-table--alt .px-col-score { display: none; }
+}
+
+/* Inline editable cell. A Polaris TextField carries a label slot, help-text
+   slot and its own vertical rhythm, all of which fight a 44px table row — this
+   is the same control stripped to the field itself so the caption can be edited
+   in place rather than in a panel below the list. */
+.px-input {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--px-ink);
+  background: var(--px-surface);
+  border: var(--px-hair);
+  border-radius: var(--px-r-sm);
+  padding: 6px 8px;
+  resize: vertical;
+  min-height: 42px;
+}
+.px-input::placeholder { color: var(--px-faint); }
+.px-input:focus {
+  outline: none;
+  border-color: var(--px-accent);
+  box-shadow: 0 0 0 2px var(--px-accent-border);
+}
+.px-input:disabled {
+  background: var(--px-wash-2);
+  color: var(--px-muted);
+  cursor: not-allowed;
+}
+
+/* Native select, flattened. A segmented control is the right shape for four
+   fixed choices; it is the wrong shape for "pick one of 500 product pages", so
+   that one stays a select — just not a Polaris-chromed one. */
+.px-select {
+  appearance: none;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.3;
+  color: var(--px-ink);
+  background: var(--px-surface);
+  border: var(--px-hair);
+  border-radius: var(--px-r);
+  padding: 7px 28px 7px 10px;
+  min-width: 220px;
+  max-width: 100%;
+  cursor: pointer;
+  /* Caret drawn as a background gradient pair so no SVG asset or icon font is
+     needed — the strict-CSP public pages can't fetch one anyway. */
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--px-muted) 50%),
+    linear-gradient(135deg, var(--px-muted) 50%, transparent 50%);
+  background-position: calc(100% - 15px) 52%, calc(100% - 10px) 52%;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+}
+.px-select:focus {
+  outline: none;
+  border-color: var(--px-accent);
+  box-shadow: 0 0 0 2px var(--px-accent-border);
+}
+.px-select:disabled { background-color: var(--px-wash-2); color: var(--px-muted); cursor: not-allowed; }
+
+/* Row thumbnail — square, hairline, no Polaris Thumbnail chrome. */
+.px-thumb {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--px-r-sm);
+  border: var(--px-hair);
+  object-fit: cover;
+  display: block;
+  background: var(--px-wash-2);
+}
+.px-thumb--lg { width: 44px; height: 44px; }
+
+/* ══════════════════════════════════════════════════════════════════════
+   Meter — a thin inline bar. Used in table rows where a Polaris
+   ProgressBar is too tall and carries its own margins.
+   ══════════════════════════════════════════════════════════════════════ */
+
+.px-meter { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.px-meter-track {
+  flex: 1 1 auto;
+  height: 4px;
+  min-width: 36px;
+  border-radius: 2px;
+  background: var(--px-wash-2);
+  overflow: hidden;
+}
+.px-meter-fill {
+  display: block;
+  height: 100%;
+  background: var(--px-accent);
+  transition: width 0.25s ease;
+}
+.px-meter-fill--ok { background: var(--px-ok); }
+.px-meter-fill--warn { background: var(--px-warn); }
+.px-meter-fill--bad { background: var(--px-bad); }
+.px-meter-value {
+  font-size: 11px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  color: var(--px-body);
+  width: 34px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+/* A wider, labelled meter for the quota rail in the command bar area. */
+.px-quota { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.px-quota .px-meter-track { height: 6px; min-width: 180px; }
+
+/* ══════════════════════════════════════════════════════════════════════
+   Tags & dots — flat, square-ish. Used alongside (not instead of)
+   Polaris Badge: Badge stays for platform-standard statuses.
+   ══════════════════════════════════════════════════════════════════════ */
+
+.px-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1;
+  padding: 4px 7px;
+  border-radius: var(--px-r-sm);
+  border: 1px solid var(--px-border);
+  background: var(--px-wash-2);
+  color: var(--px-body);
+  white-space: nowrap;
+}
+.px-tag--brand { background: var(--px-accent-tint); color: var(--px-deep); border-color: var(--px-accent-border); }
+.px-tag--ok { background: var(--px-ok-bg); color: var(--px-ok); border-color: var(--px-ok-border); }
+.px-tag--warn { background: var(--px-warn-bg); color: var(--px-warn); border-color: var(--px-warn-border); }
+.px-tag--bad { background: var(--px-bad-bg); color: var(--px-bad); border-color: var(--px-bad-border); }
+.px-tag--info { background: var(--px-info-bg); color: var(--px-info); border-color: var(--px-info-border); }
+
+.px-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--px-border-strong);
+  display: inline-block;
+}
+.px-dot--ok { background: var(--px-ok); }
+.px-dot--warn { background: var(--px-warn); }
+.px-dot--bad { background: var(--px-bad); }
+.px-dot--info { background: var(--px-info); }
+.px-dot--brand { background: var(--px-accent); }
+
+/* ══════════════════════════════════════════════════════════════════════
+   Image chips — per-image run state. Replaces a row of Polaris
+   Thumbnails in Boxes; these are small squares in a tight wrap grid so a
+   25-image product is a glanceable block rather than a scroll.
+   ══════════════════════════════════════════════════════════════════════ */
+
+.px-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.px-chip {
+  position: relative;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--px-r-sm);
+  border: var(--px-hair);
+  background: var(--px-wash-2);
+  overflow: hidden;
+}
+.px-chip img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.px-chip--done { border-color: var(--px-ok); }
+.px-chip--failed { border-color: var(--px-bad); }
+.px-chip--working { border-color: var(--px-accent); }
+/* A corner wedge rather than an overlay: the merchant can still see which
+   image it is while the state is unambiguous at 30px. */
+.px-chip::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 3px;
+  background: transparent;
+}
+.px-chip--done::after { background: var(--px-ok); }
+.px-chip--failed::after { background: var(--px-bad); }
+.px-chip--working::after {
+  background: var(--px-accent);
+  animation: px-pulse 1s ease-in-out infinite;
+}
+.px-chip--skipped::after { background: var(--px-border-strong); }
+@keyframes px-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+/* ══════════════════════════════════════════════════════════════════════
+   Run rail — the live optimization strip. A thin docked bar, not a card.
+   ══════════════════════════════════════════════════════════════════════ */
+
+.px-run {
+  background: var(--px-surface);
+  border: var(--px-hair);
+  border-left: 2px solid var(--px-accent);
+  border-radius: var(--px-r);
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+.px-run-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 11px 16px;
+  background: var(--px-accent-tint);
+  border-bottom: 1px solid var(--px-accent-border);
+}
+.px-run-title { font-size: 13px; font-weight: 650; color: var(--px-deep); margin: 0; }
+.px-run-pct {
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--px-deep);
+}
+.px-run-body { padding: 12px 16px; display: flex; flex-direction: column; gap: 10px; }
+.px-run-line { font-size: 12px; color: var(--px-muted); margin: 0; }
+.px-run-line strong { color: var(--px-ink); font-weight: 650; }
+.px-run-log { display: flex; flex-direction: column; gap: 3px; }
+.px-run-log-item {
+  font-size: 11px;
+  color: var(--px-muted);
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.px-run-log-item::before { content: "✓ "; color: var(--px-ok); font-weight: 700; }
+
+/* ══════════════════════════════════════════════════════════════════════
+   Sticky bulk-action bar — replaces the inline "Optimize Selected" button
+   that scrolled away with the toolbar.
+   ══════════════════════════════════════════════════════════════════════ */
+
+.px-actionbar {
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  background: var(--px-ink);
+  border-radius: var(--px-r);
+  padding: 10px 14px;
+  margin-top: 16px;
+}
+.px-actionbar-text {
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+.px-actionbar-note { font-size: 12px; color: #94A3B8; margin: 2px 0 0 0; }
+.px-actionbar-actions { display: flex; align-items: center; gap: 8px; }
+/* The bar is dark, so the accent button needs to lift off it rather than sink
+   in — and the plain "clear" control has to be legible on dark too. */
+.px-actionbar .Polaris-Button--variantPrimary {
+  background: var(--px-accent) !important;
+  border-color: var(--px-accent) !important;
+}
+.px-actionbar .Polaris-Button--variantPrimary:hover:not(:disabled) {
+  background: #14B8A6 !important;
+  border-color: #14B8A6 !important;
+}
+.px-btn-ghost {
+  appearance: none;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: var(--px-r);
+  color: #E2E8F0;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 550;
+  padding: 7px 11px;
+  cursor: pointer;
+}
+.px-btn-ghost:hover { background: rgba(255, 255, 255, 0.08); color: #fff; }
+
+/* ══════════════════════════════════════════════════════════════════════
+   Expanded row detail — inline, inside the table, instead of a modal or
+   a separate card per product.
+   ══════════════════════════════════════════════════════════════════════ */
+
+.px-expand {
+  background: var(--px-wash);
+  border-bottom: var(--px-hair);
+  padding: 12px 16px 14px 58px;
+}
+.px-expand-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+  gap: 10px 18px;
+  margin-bottom: 12px;
+}
+.px-expand-k {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--px-muted);
+  margin: 0 0 3px 0;
+}
+.px-expand-v {
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--px-ink);
+  margin: 0;
+}
+.px-disclose {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 650;
+  color: var(--px-accent);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.px-disclose:hover { color: var(--px-accent-hover); }
+.px-disclose-caret { font-size: 9px; line-height: 1; }
+
+@media (max-width: 780px) {
+  .px-expand { padding-left: 16px; }
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   Launchpad list — the home page tool index. A dense keyed list with
+   status dots, not a grid of icon cards.
+   ══════════════════════════════════════════════════════════════════════ */
+
+.px-launch { display: flex; flex-direction: column; }
+.px-launch-row {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  padding: 13px 16px;
+  border-bottom: var(--px-hair);
+  background: var(--px-surface);
+  transition: background 0.12s ease;
+}
+.px-launch-row:last-child { border-bottom: 0; }
+.px-launch-row:hover { background: var(--px-hover); }
+/* Flat monogram square — a bordered glyph tile, no fill gradient, no shadow. */
+.px-launch-glyph {
+  width: 30px;
+  height: 30px;
+  border-radius: var(--px-r-sm);
+  border: var(--px-hair);
+  background: var(--px-wash);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--px-deep);
+}
+.px-launch-glyph--locked { color: var(--px-faint); background: var(--px-wash-2); }
+.px-launch-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 0 0 3px 0;
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--px-ink);
+}
+.px-launch-desc { font-size: 12px; color: var(--px-muted); margin: 0; }
+
+@media (max-width: 700px) {
+  .px-launch-row { grid-template-columns: 30px minmax(0, 1fr); }
+  .px-launch-row > :last-child { grid-column: 1 / -1; }
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   Insight list — replaces a stack of full-width Polaris Banners, which
+   read as four errors rather than four notes.
+   ══════════════════════════════════════════════════════════════════════ */
+
+.px-notes { display: flex; flex-direction: column; }
+.px-note {
+  display: grid;
+  grid-template-columns: 7px minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: var(--px-hair);
+}
+.px-note:last-child { border-bottom: 0; }
+.px-note-dot { margin-top: 5px; }
+.px-note-title { font-size: 13px; font-weight: 650; color: var(--px-ink); margin: 0 0 3px 0; }
+.px-note-body { font-size: 12px; line-height: 1.55; color: var(--px-body); margin: 0; }
+
+@media (max-width: 700px) {
+  .px-note { grid-template-columns: 7px minmax(0, 1fr); }
+  .px-note > :last-child { grid-column: 2; margin-top: 6px; }
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   Vitals grid — Core Web Vitals cells. Flat bordered cells with a rating
+   dot, instead of a three-column DataTable of strings.
+   ══════════════════════════════════════════════════════════════════════ */
+
+.px-vitals {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1px;
+  background: var(--px-border);
+  border: var(--px-hair);
+  border-radius: var(--px-r);
+  overflow: hidden;
+}
+.px-vital { background: var(--px-surface); padding: 12px 14px; }
+.px-vital-k {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--px-muted);
+  margin: 0 0 6px 0;
+}
+.px-vital-v {
+  font-size: 19px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  color: var(--px-ink);
+  margin: 0;
+}
+.px-vital-r { font-size: 11px; margin: 3px 0 0 0; color: var(--px-muted); }
+
+/* Score ring replacement: a big flat figure with a rating tag beside it. */
+.px-score { display: flex; align-items: baseline; gap: 10px; }
+.px-score-n {
+  font-size: 34px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  color: var(--px-ink);
+}
+.px-score-d { font-size: 14px; color: var(--px-muted); }
+
+/* ══════════════════════════════════════════════════════════════════════
+   Empty / loading states
+   ══════════════════════════════════════════════════════════════════════ */
+
+.px-empty { padding: 44px 24px; text-align: center; }
+.px-empty-title { font-size: 14px; font-weight: 650; color: var(--px-ink); margin: 0 0 5px 0; }
+.px-empty-body { font-size: 13px; color: var(--px-muted); margin: 0 auto; max-width: 46ch; }
+
+/* Skeleton rows, so the table's shape is visible while /api/catalog answers
+   instead of a lone centred spinner that gives no sense of what's coming. */
+.px-skel {
+  height: 11px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--px-wash-2) 0%, #E8EDF3 50%, var(--px-wash-2) 100%);
+  background-size: 200% 100%;
+  animation: px-shimmer 1.3s linear infinite;
+}
+@keyframes px-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   Pricing matrix — one bordered comparison table instead of four
+   floating cards with the popular one lifted out of the row.
+   ══════════════════════════════════════════════════════════════════════ */
+
+.px-page {
+  min-height: 100vh;
+  background: var(--px-wash);
+  padding: 48px 24px;
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: var(--px-body);
+}
+.px-page-inner { max-width: 1000px; margin: 0 auto; }
+.px-page-eyebrow {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--px-accent);
+  margin: 0 0 12px 0;
+}
+.px-page-h1 {
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+  color: var(--px-ink);
+  margin: 0 0 8px 0;
+}
+.px-page-lead { font-size: 15px; line-height: 1.6; color: var(--px-muted); margin: 0 0 28px 0; max-width: 62ch; }
+
+.px-matrix-wrap {
+  background: var(--px-surface);
+  border: var(--px-hair);
+  border-radius: var(--px-r);
+  overflow-x: auto;
+}
+.px-matrix { width: 100%; border-collapse: collapse; min-width: 680px; }
+.px-matrix th, .px-matrix td {
+  padding: 11px 14px;
+  text-align: left;
+  border-bottom: var(--px-hair);
+  font-size: 13px;
+  vertical-align: middle;
+}
+.px-matrix tr:last-child th, .px-matrix tr:last-child td { border-bottom: 0; }
+.px-matrix thead th { background: var(--px-wash); vertical-align: top; }
+.px-matrix tbody th {
+  font-weight: 550;
+  color: var(--px-body);
+  width: 34%;
+}
+.px-matrix td { text-align: center; font-variant-numeric: tabular-nums; }
+/* The recommended column is marked by a tinted stripe and a top rule, not by
+   being physically lifted out of the table. */
+.px-matrix .px-col-pop { background: var(--px-accent-tint); }
+.px-matrix thead .px-col-pop { box-shadow: inset 0 2px 0 var(--px-accent); }
+.px-tier-name { font-size: 15px; font-weight: 700; color: var(--px-ink); margin: 0 0 2px 0; }
+.px-tier-tag { font-size: 11px; color: var(--px-muted); margin: 0 0 10px 0; }
+.px-tier-cta {
+  display: block;
+  text-align: center;
+  text-decoration: none;
+  box-sizing: border-box;
+  font-size: 13px;
+  font-weight: 650;
+  padding: 8px 12px;
+  border-radius: var(--px-r);
+  border: 1px solid var(--px-border-strong);
+  background: var(--px-surface);
+  color: var(--px-body);
+}
+.px-tier-cta:hover { background: var(--px-wash-2); }
+.px-tier-cta--primary {
+  background: var(--px-accent);
+  border-color: var(--px-accent);
+  color: #fff;
+}
+.px-tier-cta--primary:hover { background: var(--px-accent-hover); border-color: var(--px-accent-hover); }
+.px-yes { color: var(--px-ok); font-weight: 700; }
+.px-no { color: var(--px-faint); }
+.px-matrix-foot { font-size: 12px; color: var(--px-muted); margin: 18px 0 0 0; }
+
+/* ══════════════════════════════════════════════════════════════════════
+   Prose — the public privacy page and the marketing landing page
+   ══════════════════════════════════════════════════════════════════════ */
+
+.px-prose {
+  background: var(--px-surface);
+  border: var(--px-hair);
+  border-radius: var(--px-r);
+  padding: 36px 40px;
+  max-width: 760px;
+  margin: 0 auto;
+}
+.px-prose h1 {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  color: var(--px-ink);
+  margin: 0 0 6px 0;
+}
+.px-prose h2 {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--px-ink);
+  margin: 28px 0 8px 0;
+  padding-top: 14px;
+  border-top: var(--px-hair);
+}
+.px-prose p { font-size: 15px; line-height: 1.65; margin: 0 0 13px 0; }
+.px-prose ul { margin: 0 0 13px 0; padding-left: 20px; }
+.px-prose li { font-size: 15px; line-height: 1.65; margin-bottom: 9px; }
+.px-prose a { color: var(--px-accent); }
+.px-prose code {
+  background: var(--px-wash-2);
+  border: var(--px-hair);
+  padding: 1px 5px;
+  border-radius: var(--px-r-sm);
+  font-size: 13px;
+}
+.px-prose-meta { font-size: 13px; color: var(--px-muted); margin: 0 0 24px 0; }
+
+@media (max-width: 640px) {
+  .px-prose { padding: 26px 20px; }
+  .px-page { padding: 32px 16px; }
+  .px-page-h1 { font-size: 26px; }
+}
