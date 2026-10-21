@@ -20,8 +20,8 @@ async function fetchProductPage(admin, cursor = null) {
             handle
             status
             featuredImage { id url altText width height }
-            images(first: 250) {
-              edges { node { id url altText width height } }
+            media(first: 250) {
+              edges { node { ... on MediaImage { id image { url altText width height } } } }
             }
             metafields(first: 250, namespace: "image_optimization") {
               edges { node { key value } }
@@ -147,8 +147,9 @@ export async function buildCatalog(admin) {
     const measureTasks = [];
     for (const product of products) {
       if (parseSummary(product)) continue;
-      for (const edge of product.images.edges) {
-        measureTasks.push({ productId: product.id, url: edge.node.url });
+      for (const edge of product.media.edges) {
+        if (!edge.node?.image?.url) continue;
+        measureTasks.push({ productId: product.id, url: edge.node.image.url });
       }
     }
     const sizeByUrl = await measureSizesMB(measureTasks.map(t => t.url));
@@ -158,7 +159,15 @@ export async function buildCatalog(admin) {
     }
 
     const processedProducts = products.map((product) => {
-      const images = product.images.edges.map(e => e.node);
+      // Same media() connection optimize.server.js iterates (listProductImages,
+      // optimizeBatch) — using the deprecated images() field here let its count
+      // diverge from the one the optimizer actually runs against, so a product
+      // could show "needs work" (score < 100) while every one of its real
+      // MediaImages already had a done record, making a run find nothing to do.
+      const images = product.media.edges
+        .map(e => e.node)
+        .filter(n => n && n.image && n.image.url)
+        .map(n => ({ id: n.id, url: n.image.url, altText: n.image.altText }));
       const imageCount = images.length;
       const imagesWithAlt = images.filter(img => img.altText && img.altText.length > 10).length;
 

@@ -93,7 +93,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 // One PSI attempt. Throws { retryable } so the caller can decide to retry.
 async function pageSpeedAttempt(apiUrl) {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 45000);
+  const timer = setTimeout(() => controller.abort(), 25000);
   let response;
   try {
     response = await fetch(apiUrl, { signal: controller.signal });
@@ -150,9 +150,18 @@ async function pageSpeedAttempt(apiUrl) {
  * Run a real Lighthouse performance test via Google PageSpeed Insights API.
  *
  * The keyless endpoint is rate-limited, so failures are often transient — we
- * retry with backoff (up to 3 attempts) on 429/5xx/timeout, which makes the
+ * retry with backoff (2 attempts total) on 429/5xx/timeout, which makes the
  * test reliable without requiring a GOOGLE_PAGESPEED_API_KEY (one still raises
  * the limits further if set). Returns null only after all attempts fail.
+ *
+ * This whole call runs synchronously inside a single Remix action (no job
+ * queue), so its total worst-case duration is also the time the merchant's
+ * browser — and every proxy in front of it (Shopify's embedded-app proxy,
+ * Coolify/Traefik) — waits for one HTTP response. 3 attempts at a 45s timeout
+ * each could run ~142s, well past common gateway timeouts, which made "Run
+ * test" look like it hung even though the server would have eventually
+ * replied. Capped at 2 attempts * 25s + a short backoff (~53s worst case) to
+ * stay inside the window the UI already advertises ("30-60 seconds").
  *
  * A 403 deliberately breaks out without retrying, which means a key that lacks
  * the PageSpeed Insights API enabled (Google answers API_KEY_SERVICE_BLOCKED)
@@ -164,7 +173,7 @@ async function runPageSpeedTest(url) {
   const keyParam = apiKey ? `&key=${apiKey}` : '';
   const apiUrl = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(url)}&category=performance&strategy=mobile${keyParam}`;
 
-  const backoffs = [0, 2000, 5000]; // before attempts 1, 2, 3
+  const backoffs = [0, 3000]; // before attempts 1, 2
   let lastErr;
   for (let attempt = 0; attempt < backoffs.length; attempt++) {
     if (backoffs[attempt]) await sleep(backoffs[attempt]);

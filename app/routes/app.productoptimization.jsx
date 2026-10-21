@@ -498,8 +498,13 @@ export default function ProductOptimization() {
       if (stoppedByUser && !quotaError) {
         setSuccessMessage('Stopped — nothing was changed.');
         setTimeout(() => setSuccessMessage(null), 6000);
+      } else if (quotaError || lastError) {
+        setError(quotaError || lastError);
       } else {
-        setError(quotaError || lastError || 'Nothing was optimized.');
+        // Every image already had a record by the time the run reached it (e.g.
+        // optimized moments earlier in another tab) — a no-op, not a failure.
+        setSuccessMessage('Already optimized — nothing left to do.');
+        setTimeout(() => setSuccessMessage(null), 6000);
       }
     } else if (final.imagesDone === 0) {
       setError(lastError || 'None of the images could be optimized.');
