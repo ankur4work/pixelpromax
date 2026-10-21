@@ -110,8 +110,15 @@ async function pageSpeedAttempt(apiUrl) {
     let detail = '';
     try { detail = (await response.json())?.error?.message || ''; } catch { /* non-JSON */ }
     const err = new Error(`PageSpeed API request failed (${response.status})${detail ? `: ${detail}` : ''}`);
-    // 429 (rate limit) and 5xx are transient; other 4xx (bad/unreachable URL) are not.
-    err.retryable = response.status === 429 || response.status >= 500;
+    // 429 (short rate limit) and 5xx are transient; other 4xx (bad/unreachable URL)
+    // are not. A 429 whose body names a PER-DAY quota is a different animal: the
+    // keyless endpoint shares one anonymous daily cap across every unkeyed caller
+    // worldwide, and once that's exhausted it doesn't reset for hours — a 3s
+    // backoff and a second attempt fail identically, so treat it like a hard wall
+    // (same as a 403) instead of burning the retry budget for nothing.
+    const isDailyQuota = response.status === 429 && /per day/i.test(detail);
+    err.retryable = !isDailyQuota && (response.status === 429 || response.status >= 500);
+    err.dailyQuotaExceeded = isDailyQuota;
     throw err;
   }
 
@@ -152,7 +159,11 @@ async function pageSpeedAttempt(apiUrl) {
  * The keyless endpoint is rate-limited, so failures are often transient — we
  * retry with backoff (2 attempts total) on 429/5xx/timeout, which makes the
  * test reliable without requiring a GOOGLE_PAGESPEED_API_KEY (one still raises
- * the limits further if set). Returns null only after all attempts fail.
+ * the limits further if set). Throws the real underlying error after all
+ * attempts fail, rather than a generic message, so the banner (and the logs)
+ * say WHY — a wrong/unreachable URL reads completely differently from the
+ * shared keyless pool's daily quota being exhausted, and merchants/reviewers
+ * can't act on "Failed to run PageSpeed test" alone.
  *
  * This whole call runs synchronously inside a single Remix action (no job
  * queue), so its total worst-case duration is also the time the merchant's
@@ -186,7 +197,7 @@ async function runPageSpeedTest(url) {
     }
   }
   console.error('PageSpeed test failed after retries:', lastErr?.message || lastErr);
-  return null;
+  throw lastErr || new Error('PageSpeed test failed for an unknown reason');
 }
 
 /**
@@ -358,10 +369,6 @@ export async function action({ request }) {
     try {
       const result = await runPageSpeedTest(pageUrl);
 
-      if (!result) {
-        throw new Error('Failed to run PageSpeed test');
-      }
-
       return {
         success: true,
         message: `PageSpeed test completed for ${pageName || pageUrl}. Performance score: ${result.score}/100`,
@@ -371,6 +378,15 @@ export async function action({ request }) {
       };
     } catch (error) {
       console.error('Error running PageSpeed analysis:', error);
+      // The shared keyless endpoint's daily quota is a hard wall, not a blip —
+      // "try again in a moment" is actively wrong advice for it, so say what is
+      // actually true: it needs a GOOGLE_PAGESPEED_API_KEY, or tomorrow.
+      if (error?.dailyQuotaExceeded) {
+        return {
+          success: false,
+          error: "Google's free PageSpeed testing quota for today is used up (shared across every store running without an API key). It resets in a few hours — your measured optimization savings below are unaffected either way."
+        };
+      }
       const detail = error?.message ? ` (${error.message})` : '';
       return {
         success: false,
